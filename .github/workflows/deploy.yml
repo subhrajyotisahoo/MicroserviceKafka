@@ -19,20 +19,23 @@ jobs:
 
       - name: Copy code to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@13.60.13.166 "rm -rf ~/app && mkdir ~/app"
-          scp -r ./* ubuntu@13.60.13.166:~/app/
+          ssh -o StrictHostKeyChecking=no ubuntu@13.60.13.166 "rm -rf ~/SpringBootKafka && mkdir ~/SpringBootKafka"
+          scp -r ./* ubuntu@13.60.13.166:~/SpringBootKafka/
 
-      - name: Build & run Docker Compose on EC2
+      - name: Build & run on EC2
         run: |
           ssh ubuntu@13.60.13.166 << 'EOF'
-            cd ~/app
+            cd ~/SpringBootKafka
+
             sudo apt-get update
             sudo apt-get install -y maven docker-compose
 
-            # Build all microservices JARs
-            mvn clean package -DskipTests
+            # Build JARs for each service
+            cd email-service && mvn clean package -DskipTests && cd ..
+            cd order-service && mvn clean package -DskipTests && cd ..
+            cd stock-service && mvn clean package -DskipTests && cd ..
 
-            # Build and run Docker containers
+            # Launch services using Docker Compose
             docker-compose down
             docker-compose build
             docker-compose up -d
