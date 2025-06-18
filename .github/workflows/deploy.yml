@@ -1,41 +1,52 @@
-name: Deploy to AWS EC2
+name: Deploy Spring Boot Kafka Microservices
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up SSH access
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
-      - name: Copy code to EC2
+      - name: Copy project to EC2
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@13.60.13.166 "rm -rf ~/SpringBootKafka && mkdir ~/SpringBootKafka"
-          scp -r ./* ubuntu@13.60.13.166:~/SpringBootKafka/
+          scp -o StrictHostKeyChecking=no -r . ubuntu@13.60.13.166:~/SpringBootKafka/
 
-      - name: Build & run on EC2
+      - name: Build and Run on EC2
         run: |
-          ssh ubuntu@13.60.13.166 << 'EOF'
+          ssh -o StrictHostKeyChecking=no ubuntu@13.60.13.166 << 'EOF'
             cd ~/SpringBootKafka
 
+            echo "Installing dependencies..."
             sudo apt-get update
-            sudo apt-get install -y maven docker-compose
+            sudo apt-get install -y openjdk-21-jdk maven docker-compose
 
-            # Build JARs for each service
+            export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+            export PATH=$JAVA_HOME/bin:$PATH
+
+            echo "Java version:"
+            java -version
+            echo "Maven version:"
+            mvn -version
+
+            echo "Building all microservices..."
             cd email-service && mvn clean package -DskipTests && cd ..
             cd order-service && mvn clean package -DskipTests && cd ..
             cd stock-service && mvn clean package -DskipTests && cd ..
 
-            # Launch services using Docker Compose
+            echo "Restarting Docker containers..."
             docker-compose down
             docker-compose build
             docker-compose up -d
