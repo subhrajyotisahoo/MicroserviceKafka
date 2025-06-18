@@ -16,17 +16,17 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
       - name: Copy project to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@13.60.13.166 "rm -rf ~/SpringBootKafka && mkdir ~/SpringBootKafka"
-          scp -o StrictHostKeyChecking=no -r . ubuntu@13.60.13.166:~/SpringBootKafka/
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@13.60.13.166 "rm -rf ~/SpringBootKafka && mkdir ~/SpringBootKafka"
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@13.60.13.166:~/SpringBootKafka/
 
       - name: Build and Run on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@13.60.13.166 << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@13.60.13.166 << 'EOF'
             cd ~/SpringBootKafka
 
             echo "Installing dependencies..."
