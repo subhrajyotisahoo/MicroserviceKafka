@@ -19,18 +19,27 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Copy project to EC2
+      - name: Clean old project folder and prepare on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@13.50.232.91 "rm -rf ~/SpringBootKafka && mkdir ~/SpringBootKafka"
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@13.50.232.91:~/SpringBootKafka/
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@13.50.232.91 << 'EOF'
+            set -e
+            echo "Cleaning up previous project..."
+            rm -rf ~/MicroserviceKafka
+            mkdir ~/MicroserviceKafka
+          EOF
 
-      - name: Build and Run on EC2
+      - name: Copy files to EC2
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@13.50.232.91 << 'EOF'
-            cd ~/SpringBootKafka
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@13.50.232.91:~/MicroserviceKafka/
 
-            echo "Installing dependencies..."
-            sudo apt-get update
+      - name: Build and run services on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@13.50.232.91 << 'EOF'
+            set -e
+            cd ~/MicroserviceKafka
+
+            echo "Installing Java 21, Maven, Docker Compose..."
+            sudo apt-get update -y
             sudo apt-get install -y openjdk-21-jdk maven docker-compose
 
             export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
@@ -41,13 +50,15 @@ jobs:
             echo "Maven version:"
             mvn -version
 
-            echo "Building all microservices..."
+            echo "Building all services..."
             cd email-service && mvn clean package -DskipTests && cd ..
             cd order-service && mvn clean package -DskipTests && cd ..
             cd stock-service && mvn clean package -DskipTests && cd ..
 
             echo "Restarting Docker containers..."
-            docker-compose down
+            docker-compose down -v
             docker-compose build
             docker-compose up -d
+
+            echo "Deployment completed successfully!"
           EOF
