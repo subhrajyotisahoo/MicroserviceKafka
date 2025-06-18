@@ -19,7 +19,7 @@ jobs:
 
       - name: Copy code to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@13.60.13.166"rm -rf app && mkdir app"
+          ssh -o StrictHostKeyChecking=no ubuntu@13.60.13.166 "rm -rf app && mkdir app"
           scp -r ./* ubuntu@13.60.13.166:app/
 
       - name: Build & run Docker Compose on EC2
