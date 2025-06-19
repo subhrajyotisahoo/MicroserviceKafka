@@ -24,6 +24,13 @@ services:
     depends_on:
       - zookeeper
 
+  redis:
+    image: redis:7.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always
+
   mysql:
     image: mysql:8.0
     container_name: mysql
@@ -81,12 +88,16 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+      redis:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: default
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_db
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_KAFKA_CONSUMER_BOOTSTRAP-SERVERS: kafka:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
 
 volumes:
   mysql_data:
