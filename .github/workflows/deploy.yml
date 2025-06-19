@@ -21,7 +21,7 @@ jobs:
 
       - name: Clean old project folder and prepare on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@13.50.232.91 << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP }} << 'EOF'
             set -e
             echo "Cleaning up previous project..."
             rm -rf ~/MicroserviceKafka
@@ -30,11 +30,11 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@13.50.232.91:~/MicroserviceKafka/
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@${{ secrets.EC2_IP }}:~/MicroserviceKafka/
 
       - name: Build and run services on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@13.50.232.91 << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP }} << 'EOF'
             set -e
             cd ~/MicroserviceKafka
 
