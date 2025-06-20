@@ -19,46 +19,76 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Clean old project folder and prepare on EC2
+      ##################################
+      # Deploy to EC2 Instance 1
+      ##################################
+
+      - name: Clean project folder on EC2 1
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP_1 }} << 'EOF'
             set -e
-            echo "Cleaning up previous project..."
             rm -rf ~/MicroserviceKafka
             mkdir ~/MicroserviceKafka
           EOF
 
-      - name: Copy files to EC2
+      - name: Copy files to EC2 1
         run: |
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@${{ secrets.EC2_IP }}:~/MicroserviceKafka/
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@${{ secrets.EC2_IP_1 }}:~/MicroserviceKafka/
 
-      - name: Build and run services on EC2
+      - name: Build and deploy on EC2 1
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP_1 }} << 'EOF'
             set -e
             cd ~/MicroserviceKafka
 
-            echo "Installing Java 21, Maven, Docker Compose..."
             sudo apt-get update -y
             sudo apt-get install -y openjdk-21-jdk maven docker-compose
 
             export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
             export PATH=$JAVA_HOME/bin:$PATH
 
-            echo "Java version:"
-            java -version
-            echo "Maven version:"
-            mvn -version
-
-            echo "Building all services..."
             cd email-service && mvn clean package -DskipTests && cd ..
             cd order-service && mvn clean package -DskipTests && cd ..
             cd stock-service && mvn clean package -DskipTests && cd ..
 
-            echo "Restarting Docker containers..."
             docker-compose down -v
             docker-compose build
             docker-compose up -d
+          EOF
 
-            echo "Deployment completed successfully!"
+      ##################################
+      # Deploy to EC2 Instance 2
+      ##################################
+
+      - name: Clean project folder on EC2 2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP_2 }} << 'EOF'
+            set -e
+            rm -rf ~/MicroserviceKafka
+            mkdir ~/MicroserviceKafka
+          EOF
+
+      - name: Copy files to EC2 2
+        run: |
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@${{ secrets.EC2_IP_2 }}:~/MicroserviceKafka/
+
+      - name: Build and deploy on EC2 2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP_2 }} << 'EOF'
+            set -e
+            cd ~/MicroserviceKafka
+
+            sudo apt-get update -y
+            sudo apt-get install -y openjdk-21-jdk maven docker-compose
+
+            export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+            export PATH=$JAVA_HOME/bin:$PATH
+
+            cd email-service && mvn clean package -DskipTests && cd ..
+            cd order-service && mvn clean package -DskipTests && cd ..
+            cd stock-service && mvn clean package -DskipTests && cd ..
+
+            docker-compose down -v
+            docker-compose build
+            docker-compose up -d
           EOF
