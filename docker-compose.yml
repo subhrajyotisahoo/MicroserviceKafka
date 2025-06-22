@@ -10,19 +10,31 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
     ports:
       - "9092:9092"
+    depends_on:
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    depends_on:
-      - zookeeper
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7.2
@@ -30,6 +42,11 @@ services:
     ports:
       - "6379:6379"
     restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   order-service:
     build:
@@ -39,7 +56,7 @@ services:
       - "8080:8080"
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: default
       SPRING_KAFKA_PRODUCER_BOOTSTRAP-SERVERS: kafka:9092
@@ -52,7 +69,7 @@ services:
       - "8082:8082"
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: default
       SPRING_KAFKA_CONSUMER_BOOTSTRAP-SERVERS: kafka:9092
@@ -65,9 +82,9 @@ services:
       - "8081:8081"
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: default
       SPRING_KAFKA_CONSUMER_BOOTSTRAP-SERVERS: kafka:9092
