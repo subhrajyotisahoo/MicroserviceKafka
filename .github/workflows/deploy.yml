@@ -51,9 +51,17 @@ jobs:
             cd order-service && mvn clean package -DskipTests && cd ..
             cd stock-service && mvn clean package -DskipTests && cd ..
 
-            docker-compose down -v
-            docker-compose build
-            docker-compose up -d
+            # ✅ Start Kafka, Zookeeper, Redis only if not already running
+            if [ -z "$(docker ps -q -f name=zookeeper)" ]; then
+              echo "Starting Kafka, Zookeeper, and Redis..."
+              docker-compose up -d redis kafka zookeeper
+            else
+              echo "Kafka, Zookeeper, Redis already running. Skipping."
+            fi
+
+            # 🔁 Rebuild and restart only app services
+            docker-compose build stock-service email-service order-service
+            docker-compose up -d stock-service email-service order-service
           EOF
 
       ##################################
@@ -88,7 +96,15 @@ jobs:
             cd order-service && mvn clean package -DskipTests && cd ..
             cd stock-service && mvn clean package -DskipTests && cd ..
 
-            docker-compose down -v
-            docker-compose build
-            docker-compose up -d
+            # ✅ Start Kafka, Zookeeper, Redis only if not already running
+            if [ -z "$(docker ps -q -f name=zookeeper)" ]; then
+              echo "Starting Kafka, Zookeeper, and Redis..."
+              docker-compose up -d redis kafka zookeeper
+            else
+              echo "Kafka, Zookeeper, Redis already running. Skipping."
+            fi
+
+            # 🔁 Rebuild and restart only app services
+            docker-compose build stock-service email-service order-service
+            docker-compose up -d stock-service email-service order-service
           EOF
