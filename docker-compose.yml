@@ -31,27 +31,9 @@ services:
       - "6379:6379"
     restart: always
 
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
-    restart: always
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: stock_db
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   order-service:
     build:
       context: ./order-service
-      dockerfile: Dockerfile
     container_name: order-service
     ports:
       - "8080:8080"
@@ -65,7 +47,6 @@ services:
   email-service:
     build:
       context: ./email-service
-      dockerfile: Dockerfile
     container_name: email-service
     ports:
       - "8082:8082"
@@ -79,25 +60,16 @@ services:
   stock-service:
     build:
       context: ./stock-service
-      dockerfile: Dockerfile
     container_name: stock-service
     ports:
       - "8081:8081"
     depends_on:
-      mysql:
-        condition: service_healthy
       kafka:
         condition: service_started
       redis:
         condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: default
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_db
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
       SPRING_KAFKA_CONSUMER_BOOTSTRAP-SERVERS: kafka:9092
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-
-volumes:
-  mysql_data:
