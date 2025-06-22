@@ -35,7 +35,11 @@ public class OrderService {
     @Cacheable(value = "orders", key = "#id")
     public OrderEntity getOrderById(String id) {
         LOGGER.info("Fetching order by ID {} from DB", id);
-        return orderRepository.findById(id).orElse(null);
+        return orderRepository.findById(id)
+                .orElseThrow(() -> {
+                    LOGGER.warn("Order with ID {} does not exist", id);
+                    return new RuntimeException("Order not exists");
+                });
     }
 
     @CacheEvict(value = "orders", key = "#id")
