@@ -42,7 +42,7 @@ jobs:
 
             sudo apt-get update -y
             sudo apt-get remove docker-compose -y || true
-            sudo apt-get install -y openjdk-21-jdk maven docker-compose-plugin docker.io
+            sudo apt-get install -y openjdk-21-jdk maven docker-compose-plugin docker-ce-cli
 
             export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
             export PATH=$JAVA_HOME/bin:$PATH
@@ -77,4 +77,34 @@ jobs:
 
       - name: Copy files to EC2 2
         run: |
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu_
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@${{ secrets.EC2_IP_2 }}:~/MicroserviceKafka/
+
+      - name: Build and deploy on EC2 2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP_2 }} << 'EOF'
+            set -e
+            cd ~/MicroserviceKafka
+
+            sudo apt-get update -y
+            sudo apt-get remove docker-compose -y || true
+            sudo apt-get install -y openjdk-21-jdk maven docker-compose-plugin docker-ce-cli
+
+            export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+            export PATH=$JAVA_HOME/bin:$PATH
+
+            cd email-service && mvn clean package -DskipTests && cd ..
+            cd order-service && mvn clean package -DskipTests && cd ..
+            cd stock-service && mvn clean package -DskipTests && cd ..
+
+            # ✅ Start infra containers only once
+            if [ -z "$(docker ps -q -f name=redis)" ]; then
+              echo "Starting Kafka, Zookeeper, Redis..."
+              docker compose up -d redis zookeeper kafka
+            else
+              echo "Kafka, Zookeeper, Redis already running. Skipping."
+            fi
+
+            # 🔁 Rebuild & restart only application services
+            docker compose build email-service order-service stock-service
+            docker compose up -d email-service order-service stock-service
+          EOF
