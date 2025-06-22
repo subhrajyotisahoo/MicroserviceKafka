@@ -22,7 +22,6 @@ jobs:
       ##################################
       # Deploy to EC2 Instance 1
       ##################################
-
       - name: Clean project folder on EC2 1
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP_1 }} << 'EOF'
@@ -42,7 +41,8 @@ jobs:
             cd ~/MicroserviceKafka
 
             sudo apt-get update -y
-            sudo apt-get install -y openjdk-21-jdk maven docker-compose
+            sudo apt-get remove docker-compose -y || true
+            sudo apt-get install -y openjdk-21-jdk maven docker-compose-plugin docker.io
 
             export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
             export PATH=$JAVA_HOME/bin:$PATH
@@ -51,23 +51,22 @@ jobs:
             cd order-service && mvn clean package -DskipTests && cd ..
             cd stock-service && mvn clean package -DskipTests && cd ..
 
-            # ✅ Start Kafka, Zookeeper, Redis only if not already running
-            if [ -z "$(docker ps -q -f name=zookeeper)" ]; then
-              echo "Starting Kafka, Zookeeper, and Redis..."
-              docker-compose up -d redis kafka zookeeper
+            # ✅ Start infra containers only once
+            if [ -z "$(docker ps -q -f name=redis)" ]; then
+              echo "Starting Kafka, Zookeeper, Redis..."
+              docker compose up -d redis zookeeper kafka
             else
               echo "Kafka, Zookeeper, Redis already running. Skipping."
             fi
 
-            # 🔁 Rebuild and restart only app services
-            docker-compose build stock-service email-service order-service
-            docker-compose up -d stock-service email-service order-service
+            # 🔁 Rebuild & restart only application services
+            docker compose build email-service order-service stock-service
+            docker compose up -d email-service order-service stock-service
           EOF
 
       ##################################
       # Deploy to EC2 Instance 2
       ##################################
-
       - name: Clean project folder on EC2 2
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP_2 }} << 'EOF'
@@ -78,33 +77,4 @@ jobs:
 
       - name: Copy files to EC2 2
         run: |
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu@${{ secrets.EC2_IP_2 }}:~/MicroserviceKafka/
-
-      - name: Build and deploy on EC2 2
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_IP_2 }} << 'EOF'
-            set -e
-            cd ~/MicroserviceKafka
-
-            sudo apt-get update -y
-            sudo apt-get install -y openjdk-21-jdk maven docker-compose
-
-            export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-            export PATH=$JAVA_HOME/bin:$PATH
-
-            cd email-service && mvn clean package -DskipTests && cd ..
-            cd order-service && mvn clean package -DskipTests && cd ..
-            cd stock-service && mvn clean package -DskipTests && cd ..
-
-            # ✅ Start Kafka, Zookeeper, Redis only if not already running
-            if [ -z "$(docker ps -q -f name=zookeeper)" ]; then
-              echo "Starting Kafka, Zookeeper, and Redis..."
-              docker-compose up -d redis kafka zookeeper
-            else
-              echo "Kafka, Zookeeper, Redis already running. Skipping."
-            fi
-
-            # 🔁 Rebuild and restart only app services
-            docker-compose build stock-service email-service order-service
-            docker-compose up -d stock-service email-service order-service
-          EOF
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ubuntu_
