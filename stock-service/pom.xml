@@ -77,11 +77,6 @@
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
 
-		<!-- ✅ Lettuce Redis Cluster client -->
-		<dependency>
-			<groupId>io.lettuce</groupId>
-			<artifactId>lettuce-core</artifactId>
-		</dependency>
 
 		<!-- ✅ Connection pool for Redis -->
 		<dependency>
