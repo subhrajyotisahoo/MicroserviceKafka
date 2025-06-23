@@ -75,7 +75,3 @@ services:
       SPRING_PROFILES_ACTIVE: default
       SPRING_KAFKA_CONSUMER_BOOTSTRAP-SERVERS: kafka:9092
 
-      # ✅ Redis Configuration for AWS ElastiCache
-      SPRING_REDIS_HOST: clustercfg.redis-mysql.8yozlv.eun1.cache.amazonaws.com
-      SPRING_REDIS_PORT: 6379
-      SPRING_REDIS_SSL_ENABLED: true
