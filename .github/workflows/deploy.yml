@@ -51,12 +51,12 @@ jobs:
             cd order-service && mvn clean package -DskipTests && cd ..
             cd stock-service && mvn clean package -DskipTests && cd ..
 
-            # ✅ Start infra containers only once
-            if [ -z "$(docker ps -q -f name=redis)" ]; then
-              echo "Starting Kafka, Zookeeper, Redis..."
-              docker compose up -d redis zookeeper kafka
+            # ✅ Start Kafka and Zookeeper only
+            if [ -z "$(docker ps -q -f name=kafka)" ]; then
+              echo "Starting Kafka and Zookeeper..."
+              docker compose up -d zookeeper kafka
             else
-              echo "Kafka, Zookeeper, Redis already running. Skipping."
+              echo "Kafka and Zookeeper already running. Skipping."
             fi
 
             # 🔁 Rebuild & restart only application services
@@ -96,12 +96,12 @@ jobs:
             cd order-service && mvn clean package -DskipTests && cd ..
             cd stock-service && mvn clean package -DskipTests && cd ..
 
-            # ✅ Start infra containers only once
-            if [ -z "$(docker ps -q -f name=redis)" ]; then
-              echo "Starting Kafka, Zookeeper, Redis..."
-              docker compose up -d redis zookeeper kafka
+            # ✅ Start Kafka and Zookeeper only
+            if [ -z "$(docker ps -q -f name=kafka)" ]; then
+              echo "Starting Kafka and Zookeeper..."
+              docker compose up -d zookeeper kafka
             else
-              echo "Kafka, Zookeeper, Redis already running. Skipping."
+              echo "Kafka and Zookeeper already running. Skipping."
             fi
 
             # 🔁 Rebuild & restart only application services

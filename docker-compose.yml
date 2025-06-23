@@ -36,18 +36,6 @@ services:
       timeout: 5s
       retries: 10
 
-  redis:
-    image: redis:7.2
-    container_name: redis
-    ports:
-      - "6379:6379"
-    restart: always
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   order-service:
     build:
       context: ./order-service
@@ -83,10 +71,6 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: default
       SPRING_KAFKA_CONSUMER_BOOTSTRAP-SERVERS: kafka:9092
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
